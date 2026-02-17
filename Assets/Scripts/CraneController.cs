@@ -1,10 +1,14 @@
 using System.Collections;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class CraneController : MonoBehaviour
 {
+    GameManager Game;
     public GameObject[] TetoPrefabs;
     public Transform Tetspawn;
+    int Misses;
 
     public float speed = 2f;
     public float leftLim = 0f;
@@ -14,7 +18,6 @@ public class CraneController : MonoBehaviour
     private GameObject currentTet;
     private Rigidbody2D currentRB;
     private bool falling = false;
-    
     float gridSize = 0.5f;
 
     public Camera mainCamera;
@@ -57,6 +60,20 @@ public class CraneController : MonoBehaviour
     }
 
     public GameObject foundationObject;
+
+    void Awake()
+    {
+        Game = GameObject.Find("GameManager").GetComponent<GameManager>();
+        if (Game == null)
+        {
+            Debug.LogError("Where is the Game Manager?");
+        }
+        else
+        {
+            Misses = Game.GetMissCount();
+        }
+    }
+
     void Start()
     {
         highestReachedY = heightThreshold;
@@ -65,12 +82,15 @@ public class CraneController : MonoBehaviour
 
     void Update()
     {
+        Misses = Game.GetMissCount();
         AutoMove();
         HandleInput();
+        if (Input.GetKeyDown(KeyCode.R)) { SceneManager.LoadScene(0); }
     }
 
     void AutoMove()
     {
+        if (Misses >= Game.GameOverThreshold) return;
         float moveAmount = speed * Time.deltaTime;
         if (currentTet == null || falling == true) return;
 
@@ -88,7 +108,7 @@ public class CraneController : MonoBehaviour
 
     void HandleInput()
     {
-        if (currentTet == null || falling == true) return;
+        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold) return;
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -103,8 +123,20 @@ public class CraneController : MonoBehaviour
         currentTet.transform.position = Tetspawn.position;
     }
 
+    public void Missed()
+    {
+        currentTet.tag = "MissedPiece";
+        falling = false;
+        Destroy(currentTet.gameObject);
+        currentTet = null;
+        currentRB = null;
+        Game.AddMissCount();
+        NextPiece();
+    }
+
     public void Landed(GameObject landedTet)
     {
+        Game.AddBlockCount();
         StartCoroutine(SnapAfterPhysics(landedTet));
     }
 
@@ -138,19 +170,15 @@ public class CraneController : MonoBehaviour
                 transform.position.z
             );
         }
-
-        falling = false;
-        currentTet = null;
-        currentRB = null;
-
-        SpawnTet();
+        currentTet.tag = "Block";
+        NextPiece();
     }
     
     void SpawnTet()
     {
         int index = Random.Range(0, TetoPrefabs.Length);
         currentTet = Instantiate(TetoPrefabs[index], Tetspawn.position, Quaternion.identity);
-
+        currentTet.tag = "CurrentPiece";
         Collider2D col = currentTet.GetComponent<Collider2D>();
         if (col != null)
         {
@@ -184,5 +212,13 @@ public class CraneController : MonoBehaviour
 
         currentRB.bodyType = RigidbodyType2D.Dynamic;
         currentRB.gravityScale = 1f;
+    }
+
+    void NextPiece()
+    {
+        falling = false;
+        currentTet = null;
+        currentRB = null;
+        SpawnTet();
     }
 }

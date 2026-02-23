@@ -9,6 +9,7 @@ public class CraneController : MonoBehaviour
     public GameObject[] TetoPrefabs;
     public Transform Tetspawn;
     int Misses;
+    bool GameOverDueToInstability;
 
     public float speed = 2f;
     public float leftLim = 0f;
@@ -18,12 +19,15 @@ public class CraneController : MonoBehaviour
     private GameObject currentTet;
     private Rigidbody2D currentRB;
     private bool falling = false;
-    float gridSize = 0.5f;
+    float gridSize = 1f;
 
     public Camera mainCamera;
     public float cameraStep = 1f;
     public float craneStep = 1f;
-    public float heightThreshold = 6f;
+    public float heightThreshold = 4f;
+    public float smoothTime = 0.3f; // Time in seconds to reach the target
+    private Vector3 cameraVelocity = Vector3.zero;
+    private Vector3 craneVelocity = Vector3.zero;
 
     private float highestReachedY;
 
@@ -83,6 +87,7 @@ public class CraneController : MonoBehaviour
     void Update()
     {
         Misses = Game.GetMissCount();
+        GameOverDueToInstability = Game.IsStructureInstable();
         AutoMove();
         HandleInput();
         if (Input.GetKeyDown(KeyCode.R)) { SceneManager.LoadScene(0); }
@@ -91,24 +96,27 @@ public class CraneController : MonoBehaviour
     void AutoMove()
     {
         if (Misses >= Game.GameOverThreshold) return;
+        else if (GameOverDueToInstability) return;
         float moveAmount = speed * Time.deltaTime;
         if (currentTet == null || falling == true) return;
 
+        float currentY = transform.position.y; 
+
         if (movingRight)
         {
-            transform.position += Vector3.right * moveAmount;
+            transform.position = new Vector3(transform.position.x + moveAmount, currentY, transform.position.z);
             if (transform.position.x >= rightLim) movingRight = false;
         }
         else
         {
-            transform.position += Vector3.left * moveAmount;
+            transform.position = new Vector3(transform.position.x - moveAmount, currentY, transform.position.z);
             if (transform.position.x <= leftLim) movingRight = true;
         }
     }
 
     void HandleInput()
     {
-        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold) return;
+        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold || GameOverDueToInstability) return;
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -142,7 +150,7 @@ public class CraneController : MonoBehaviour
 
     IEnumerator SnapAfterPhysics(GameObject landedTet)
     {
-        yield return new WaitForFixedUpdate();
+        yield return new WaitForSeconds(0.3f);
 
         Rigidbody2D rb = landedTet.GetComponent<Rigidbody2D>();
         rb.velocity = Vector2.zero;
@@ -152,24 +160,43 @@ public class CraneController : MonoBehaviour
 
         rb.bodyType = RigidbodyType2D.Static;
 
-        float landedTopY = landedTet.transform.position.y;
-        if (landedTopY > heightThreshold)
+        //camera
+        float trueTopY = landedTet.transform.position.y;
+        foreach (Transform child in landedTet.transform)
         {
-            float cameraOffset = 2.5f;
-            float craneOffset  = 3.5f;
-
-            mainCamera.transform.position = new Vector3(
-                mainCamera.transform.position.x,
-                landedTopY + cameraOffset,
-                mainCamera.transform.position.z
-            );
-            
-            transform.position = new Vector3(
-                transform.position.x,
-                mainCamera.transform.position.y + craneOffset,
-                transform.position.z
-            );
+            if (child.position.y > trueTopY)
+            {
+                trueTopY = child.position.y;
+            }
         }
+
+        if (trueTopY > heightThreshold)
+        {
+            if (trueTopY > highestReachedY)
+            {
+                highestReachedY = trueTopY;
+            }
+
+            float cameraTargetY = highestReachedY;
+            
+            float craneTargetY = cameraTargetY + mainCamera.orthographicSize - 0.5f;
+
+            Vector3 cameraTarget = new Vector3(mainCamera.transform.position.x, cameraTargetY, mainCamera.transform.position.z);
+            Vector3 craneTarget = new Vector3(transform.position.x, craneTargetY, transform.position.z);
+
+            float elapsed = 0;
+            while (elapsed < smoothTime * 2)
+            {
+                mainCamera.transform.position = Vector3.SmoothDamp(mainCamera.transform.position, cameraTarget, ref cameraVelocity, smoothTime);
+                
+                float newCraneY = Vector3.SmoothDamp(transform.position, craneTarget, ref craneVelocity, smoothTime).y;
+                transform.position = new Vector3(transform.position.x, newCraneY, transform.position.z);
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+        }
+
         currentTet.tag = "Block";
         NextPiece();
     }

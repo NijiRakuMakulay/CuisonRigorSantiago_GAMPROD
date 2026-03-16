@@ -1,9 +1,10 @@
+using GameAnalyticsSDK;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,6 +19,12 @@ public class GameManager : MonoBehaviour
     int MissCount;
     public int GameOverThreshold = 3;
     string message;
+
+    void Awake()
+    {
+        GameAnalytics.Initialize();
+    }
+
     // Start is called before the first frame update
     void Start()
     {

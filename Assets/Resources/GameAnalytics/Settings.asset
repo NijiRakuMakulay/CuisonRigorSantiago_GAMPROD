@@ -32,15 +32,15 @@ MonoBehaviour:
   Build:
   - 0.1
   SelectedPlatformOrganization:
-  - 
+  - CuisonRigorSantiago
   SelectedPlatformStudio:
-  - 
+  - TriColor GameForge
   SelectedPlatformGame:
-  - 
-  SelectedPlatformGameID: ffffffff
-  SelectedOrganization: 00000000
-  SelectedStudio: 00000000
-  SelectedGame: 00000000
+  - Hold the Load
+  SelectedPlatformGameID: de290500
+  SelectedOrganization: 01000000
+  SelectedStudio: 01000000
+  SelectedGame: 01000000
   NewVersion: 
   Changes: 
   SignUpOpen: 1
@@ -48,7 +48,7 @@ MonoBehaviour:
   GameName: CuisonRigorSantiago_GAMPROD
   OrganizationName: 
   OrganizationIdentifier: 
-  EmailGA: 
+  EmailGA: pgmrigor@gmail.com
   IntroScreen: 0
   InfoLogEditor: 1
   InfoLogBuild: 1

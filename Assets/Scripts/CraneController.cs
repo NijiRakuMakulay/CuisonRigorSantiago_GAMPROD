@@ -90,12 +90,13 @@ public class CraneController : MonoBehaviour
         GameOverDueToInstability = Game.IsStructureInstable();
         AutoMove();
         HandleInput();
-        if (Input.GetKeyDown(KeyCode.R)) { SceneManager.LoadScene(0); }
+        if (Input.GetKeyDown(KeyCode.R)){ Game.RestartLevel(); }
     }
 
     void AutoMove()
     {
         if (Misses >= Game.GameOverThreshold) return;
+        else if (highestReachedY > Game.GameClearThreshold) return;
         else if (GameOverDueToInstability) return;
         float moveAmount = speed * Time.deltaTime;
         if (currentTet == null || falling == true) return;
@@ -116,7 +117,7 @@ public class CraneController : MonoBehaviour
 
     void HandleInput()
     {
-        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold || GameOverDueToInstability) return;
+        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold || GameOverDueToInstability || highestReachedY > Game.GameClearThreshold ) return;
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -196,7 +197,7 @@ public class CraneController : MonoBehaviour
                 yield return null;
             }
         }
-
+        Game.CheckHeight();
         currentTet.tag = "Block";
         NextPiece();
     }
@@ -213,8 +214,8 @@ public class CraneController : MonoBehaviour
         }
 
         Tetronimo t = currentTet.GetComponent<Tetronimo>();
-        if (t != null)
-        t.Crane = this;
+        if (t != null) { t.Crane = this; }
+        t.SetBlockID(index);
 
         currentRB = currentTet.GetComponent<Rigidbody2D>();
         currentRB.bodyType = RigidbodyType2D.Kinematic;
@@ -248,4 +249,6 @@ public class CraneController : MonoBehaviour
         currentRB = null;
         SpawnTet();
     }
+
+    public float getHeight() { return highestReachedY; }
 }

@@ -6,6 +6,7 @@ public class Tetronimo : MonoBehaviour
     public CraneController Crane;
     Transform MissTrigger;
     GameManager Game;
+    int blockID;
     private bool hasLanded = false;
     void Awake()
     { 
@@ -23,6 +24,11 @@ public class Tetronimo : MonoBehaviour
             Debug.LogError("No CraneController found in the scene!");
         }
     }
+
+    public bool LandCheck() { return hasLanded; }
+
+    public void SetBlockID(int id) { blockID = id; }
+    public int GetBlockID() { return blockID; }
 
     void OnTriggerEnter2D(Collider2D collision)
     {

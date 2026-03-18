@@ -23,7 +23,6 @@ public class GameManager : MonoBehaviour
     public int GameClearThreshold = 10;
     string message;
     CraneController Crane;
-    Dictionary<string, object> playResult = new Dictionary<string, object>();
 
     void Awake()
     {
@@ -118,11 +117,9 @@ public class GameManager : MonoBehaviour
 		
 		if(SeriousInstability)
 		{
-            playResult.Add("Reason for Game Over:", "Serious instability detected!");
-            playResult.Add("Blocks Placed:", BlockCount);
-            playResult.Add("Structure Height:", BlockHeight);
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", playResult);
-		}
+            int score = (int)BlockHeight;
+            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Serious instability detected!", score);
+        }
     }
 
     public void AddBlockCount()
@@ -135,10 +132,8 @@ public class GameManager : MonoBehaviour
         if (MissCount >= GameOverThreshold)
         {
             Debug.Log("Game Over. Miss count reached maximum miss threshold.");
-            playResult.Add("Reason for Game Over:", "Missed three times");
-            playResult.Add("Blocks Placed:", BlockCount);
-            playResult.Add("Structure Height:", BlockHeight);
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", playResult);
+            int score = (int)BlockHeight;
+            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Missed three times", score);
         }
     }
 
@@ -155,7 +150,6 @@ public class GameManager : MonoBehaviour
 
     public void RestartLevel()
     {
-        playResult.Clear();
         SceneManager.LoadScene(0);
     }
 
@@ -165,10 +159,8 @@ public class GameManager : MonoBehaviour
         if (BlockHeight == GameClearThreshold) { Debug.Log("Okay! The final block! Place it well!"); }
         if (BlockHeight > GameClearThreshold) {
             GoalAchieved = true;
-            playResult.Add("Reason for Game Over:", "Not Applicable. You cleared it!");
-            playResult.Add("Blocks Placed:", BlockCount);
-            playResult.Add("Structure Height:", BlockHeight);
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, "StackHigh", playResult);
+            int score = (int)BlockHeight;
+            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, "StackHigh", score);
         }
     }
 }

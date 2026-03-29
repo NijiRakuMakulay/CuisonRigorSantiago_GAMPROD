@@ -9,6 +9,7 @@ TagManager:
   - MissTrigger
   - CurrentPiece
   - MissedPiece
+  - IndividualBlock
   layers:
   - Default
   - TransparentFX

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class T_Piece : MonoBehaviour
@@ -10,6 +11,7 @@ public class T_Piece : MonoBehaviour
     Sprite placedSkin;
     SpriteRenderer blockrenderer;
     bool blockLanded;
+    GameObject[] Blocks;
     void Awake()
     {
         tPiece = this.transform.parent.gameObject.GetComponent<Tetronimo>();
@@ -32,6 +34,7 @@ public class T_Piece : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        Blocks = GameObject.FindGameObjectsWithTag("IndividualBlock");
         blockLanded = tPiece.LandCheck();
         if (blockLanded) { blockrenderer.sprite = placedSkin; }
         else { blockrenderer.sprite = blockSkins[tPiece.GetBlockID()]; }

@@ -1,4 +1,5 @@
 using GameAnalyticsSDK;
+using GameAnalyticsSDK.Setup;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -8,21 +9,31 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public int balance;
+    int balance;
+    float NormalizedInstability;
     public int MaxInstability = 10; //game ends if instability hits thresholds of -10 or 10
+    bool TooManyMissed = false;
     bool SeriousInstability = false;
     bool GoalAchieved = false;
     public float towerCenterX = 0.5f; //ship's center based on x position in scene
-    public TextMeshProUGUI DisplayText;
     public TextMeshProUGUI ResultText;
     public CanvasGroup EndPanel;
+    public CanvasGroup MainUI;
+    public Slider Progressbar;
+    public TextMeshProUGUI ProgressText;
+    public TextMeshProUGUI MissText;
+    public TextMeshProUGUI PlaceText;
+    public Scrollbar InstabilityMeter;
+    public TextMeshProUGUI InstabilityText;
     int BlockCount;
     int MissCount;
-    float BlockHeight;
+    int BlockHeight;
     public int GameOverThreshold = 3;
     public int GameClearThreshold = 10;
     string message;
     CraneController Crane;
+    int score;
+    bool GameOver;
 
     void Awake()
     {
@@ -39,6 +50,9 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         BlockCount = 0;
+        InstabilityMeter.value = 0.5f;
+        GameOver = false;
+        TooManyMissed = false;
         SeriousInstability = false;
         GoalAchieved = false;
     }
@@ -46,52 +60,114 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        BlockHeight = Crane.getHeight();
-        DisplayText.text = string.Format("Blocks placed:{0}\nBlocks Missed:{1}/{2}\nInstability:{3}/{4}\n10 or -10 is a loss\nHeight:{5}\n{6} is a win", BlockCount, MissCount, GameOverThreshold, balance, MaxInstability, BlockHeight, GameClearThreshold);
+        float heightchk = Crane.getHeight();
+        BlockHeight = (int)heightchk;
+        NormalizedInstability = Mathf.InverseLerp(-10.0f, 10.0f, balance);
         ResultText.text = message;
         //Result Screen Handler
-        if(MissCount >= GameOverThreshold)
-        {
-            EndPanel.alpha = 1.0f;
-            EndPanel.interactable = true;
-            EndPanel.blocksRaycasts = true;
-            message = string.Format(
-                "Too many pieces missed.\n" +
-                "The game ends here because of missing {0} pieces.\n" +
-                "Please try again to stack a better tower.\n" +
-                "Press R to Try Again.",
-                GameOverThreshold
-            );
-        }
-		else if(SeriousInstability)
-		{
-			EndPanel.alpha = 1.0f;
-            EndPanel.interactable = true;
-            EndPanel.blocksRaycasts = true;
-            message =
-                "Oops! Your structure is too unstable to stand straight.\n" +
-                "Please try again to stack a better tower.\n" +
-                "Press R to Try Again.";
-		}
-        else if (GoalAchieved)
-        {
-            EndPanel.alpha = 1.0f;
-            EndPanel.interactable = true;
-            EndPanel.blocksRaycasts = true;
-            message = string.Format(
-                "You did it!. You stacked a {0}-foot long tower!\n" +
-                "You dropped {1} pieces.\n" +
-                "Press R to Play Again.",
-                BlockHeight, BlockCount
-            );
-        }
-        else
+        score = (int)BlockHeight;
+        if (!GameOver)
         {
             message = " ";
             EndPanel.alpha = 0.0f;
             EndPanel.interactable = false;
             EndPanel.blocksRaycasts = false;
+            MainUI.alpha = 1.0f;
+            MainUI.interactable = false;
+            MainUI.blocksRaycasts = true;
+            Progressbar.minValue = 0;
+            Progressbar.value = BlockHeight;
+            Progressbar.maxValue = GameClearThreshold;
+            ProgressText.text = string.Format("{0} / {1} ft", BlockHeight, GameClearThreshold);
+            MissText.text = string.Format("{0}/{1}", MissCount, GameOverThreshold);
+            PlaceText.text = string.Format("{0}", BlockCount);
+            InstabilityMeter.value = NormalizedInstability;
+            InstabilityText.text = string.Format("{0}", balance);
         }
+        else
+        {
+            MainUI.alpha = 0.0f;
+            MainUI.interactable = false;
+            MainUI.blocksRaycasts = false;
+        }
+        if (GoalAchieved)
+        {
+            
+            if (!SeriousInstability)
+            {
+                if (!GameOver){ GameClear(); }
+            }
+            else
+            {
+                if (!GameOver) { GameOverInstability(); }
+            }
+        }
+        else
+        {
+            if (SeriousInstability)
+            {
+                if (!GameOver) { GameOverInstability(); }
+            }
+            if (TooManyMissed)
+            {
+                if (!GameOver) { GameOverTooManyMissed(); }
+            }
+        }
+    }
+
+    private void GameOverTooManyMissed()
+    {
+        EndPanel.alpha = 1.0f;
+        EndPanel.interactable = true;
+        EndPanel.blocksRaycasts = true;
+        message = string.Format(
+            "Too many pieces missed.\n" +
+            "The game ends here because of missing {0} pieces.\n" +
+            "Please try again to stack a better tower.\n" +
+            "Press R to Try Again.",
+            GameOverThreshold
+        );
+        GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Missed too many times", score);
+        GameOver = true;
+    }
+
+    private void GameOverInstability()
+    {
+        EndPanel.alpha = 1.0f;
+        EndPanel.interactable = true;
+        EndPanel.blocksRaycasts = true;
+        if (GoalAchieved)
+        {
+            message =
+            "I'm sorry, but your structure is not stable enough to complete.\n" +
+            "Please try again to stack a better tower.\n" +
+            "Press R to Try Again.";
+        }
+        else
+        {
+            message =
+            "Oops! Your structure is too unstable to stand straight.\n" +
+            "Please try again to stack a better tower.\n" +
+            "Press R to Try Again.";
+        }
+        
+        GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Serious instability detected!", score);
+        GameOver = true;
+    }
+
+    private void GameClear()
+    {
+        EndPanel.alpha = 1.0f;
+        EndPanel.interactable = true;
+        EndPanel.blocksRaycasts = true;
+        message = string.Format(
+            "You did it!. You stacked a {0}-foot long tower!\n" +
+            "You dropped {1} pieces.\n" +
+            "Press R to Play Again.",
+            BlockHeight, BlockCount
+        );
+        GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, "StackHigh", score);
+        GameOver = true;
     }
 
     public void AddInstability(int amount, bool isRight)
@@ -109,32 +185,17 @@ public class GameManager : MonoBehaviour
             balance += isRight ? amount : -amount;
         }
 
-        //game over placeholder
         if(Mathf.Abs(balance) >= MaxInstability)
         {
             SeriousInstability = true;
         }
-		
-		if(SeriousInstability)
-		{
-            int score = (int)BlockHeight;
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Serious instability detected!", score);
-        }
     }
 
-    public void AddBlockCount()
-    {
-        BlockCount++;
-    }
+    public void AddBlockCount() { BlockCount++; }
     public void AddMissCount()
     {
         MissCount++;
-        if (MissCount >= GameOverThreshold)
-        {
-            Debug.Log("Game Over. Miss count reached maximum miss threshold.");
-            int score = (int)BlockHeight;
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Missed three times", score);
-        }
+        if (MissCount >= GameOverThreshold) { TooManyMissed = true; }
     }
 
     void OnDrawGizmos()
@@ -147,6 +208,7 @@ public class GameManager : MonoBehaviour
     public int GetBlockCount() {  return BlockCount; }
     public int GetMissCount() {  return MissCount; }
     public bool IsStructureInstable() { return SeriousInstability; }
+    public bool IsCompleted() { return GoalAchieved; }
 
     public void RestartLevel()
     {
@@ -155,12 +217,10 @@ public class GameManager : MonoBehaviour
 
     public void CheckHeight()
     {
+
         Debug.Log("Height:" + BlockHeight);
-        if (BlockHeight == GameClearThreshold) { Debug.Log("Okay! The final block! Place it well!"); }
         if (BlockHeight > GameClearThreshold) {
             GoalAchieved = true;
-            int score = (int)BlockHeight;
-            GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, "StackHigh", score);
         }
     }
 }

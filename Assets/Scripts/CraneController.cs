@@ -1,3 +1,4 @@
+using GameAnalyticsSDK.Setup;
 using System.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -10,6 +11,7 @@ public class CraneController : MonoBehaviour
     public Transform Tetspawn;
     int Misses;
     bool GameOverDueToInstability;
+    bool GameCompleted;
 
     public float speed = 2f;
     public float leftLim = 0f;
@@ -88,6 +90,7 @@ public class CraneController : MonoBehaviour
     {
         Misses = Game.GetMissCount();
         GameOverDueToInstability = Game.IsStructureInstable();
+        GameCompleted = Game.IsCompleted();
         AutoMove();
         HandleInput();
         if (Input.GetKeyDown(KeyCode.R)){ Game.RestartLevel(); }
@@ -96,7 +99,7 @@ public class CraneController : MonoBehaviour
     void AutoMove()
     {
         if (Misses >= Game.GameOverThreshold) return;
-        else if (highestReachedY > Game.GameClearThreshold) return;
+        else if (GameCompleted) return;
         else if (GameOverDueToInstability) return;
         float moveAmount = speed * Time.deltaTime;
         if (currentTet == null || falling == true) return;
@@ -117,7 +120,7 @@ public class CraneController : MonoBehaviour
 
     void HandleInput()
     {
-        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold || GameOverDueToInstability || highestReachedY > Game.GameClearThreshold ) return;
+        if (currentTet == null || falling == true || Misses >= Game.GameOverThreshold || GameOverDueToInstability || GameCompleted) return;
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -158,6 +161,7 @@ public class CraneController : MonoBehaviour
         rb.angularVelocity = 0f;
 
         SnapTetronimoParentToGrid(landedTet);
+        //SnapToGrid(landedTet.transform.position);
 
         rb.bodyType = RigidbodyType2D.Static;
 

@@ -42,6 +42,13 @@ public class CraneController : MonoBehaviour
         );
     }
 
+    public void FixHorizontalPosition()
+    {
+        Vector3 newPos = SnapTetronimoParentToGrid(currentTet);
+        currentRB.position = new Vector3(newPos.x, currentRB.position.y, 0);
+        currentTet.transform.position = currentRB.position;
+    }
+
     Vector3 SnapTetronimoParentToGrid(GameObject tet)
     {
         if (tet.transform.childCount == 0) return tet.transform.position;
@@ -61,7 +68,6 @@ public class CraneController : MonoBehaviour
         float offsetY = Mathf.Round(lowestChild.position.y) - lowestChild.position.y;
         
         tet.transform.position += new Vector3(offsetX, offsetY, 0);
-
         return tet.transform.position;
     }
 
@@ -93,6 +99,10 @@ public class CraneController : MonoBehaviour
         GameCompleted = Game.IsCompleted();
         AutoMove();
         HandleInput();
+        if (falling)
+        {
+            FixHorizontalPosition();
+        }
         if (Input.GetKeyDown(KeyCode.R)){ Game.RestartLevel(); }
     }
 
@@ -232,14 +242,13 @@ public class CraneController : MonoBehaviour
         {
             return;
         }
-
         Collider2D col = currentTet.GetComponent<Collider2D>();
         if (col != null)
         {
             col.enabled = true;
         }
 
-        currentTet.transform.parent = null; 
+        currentTet.transform.parent = null;
         falling = true;
 
         currentRB.bodyType = RigidbodyType2D.Dynamic;

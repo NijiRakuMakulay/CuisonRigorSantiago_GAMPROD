@@ -9,6 +9,7 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    AudioManager sound;
     int balance;
     float NormalizedInstability;
     public int MaxInstability = 10; //game ends if instability hits thresholds of -10 or 10
@@ -37,6 +38,8 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
+        sound = GameObject.Find("AudioManager").GetComponent<AudioManager>();
+        if (sound == null) { Debug.LogError("No audio manager!"); }
         Crane = FindFirstObjectByType<CraneController>();
         if (Crane == null)
         {
@@ -44,6 +47,24 @@ public class GameManager : MonoBehaviour
         }
         GameAnalytics.Initialize();
         GameAnalytics.NewProgressionEvent(GAProgressionStatus.Start, "StackHigh");
+    }
+
+    void LoseBGM()
+    {
+        sound.PlayAudio(0);
+        sound.SetLoop(false);
+    }
+
+    void LevelBGM()
+    {
+        sound.PlayAudio(1);
+        sound.SetLoop(true);
+    }
+
+    void WinBGM()
+    {
+        sound.PlayAudio(2);
+        sound.SetLoop(false);
     }
 
     // Start is called before the first frame update
@@ -55,6 +76,7 @@ public class GameManager : MonoBehaviour
         TooManyMissed = false;
         SeriousInstability = false;
         GoalAchieved = false;
+        LevelBGM();
     }
 
     // Update is called once per frame
@@ -129,6 +151,8 @@ public class GameManager : MonoBehaviour
         );
         GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Missed too many times", score);
         GameOver = true;
+        sound.StopAudio();
+        LoseBGM();
     }
 
     private void GameOverInstability()
@@ -153,6 +177,8 @@ public class GameManager : MonoBehaviour
         
         GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, "StackHigh", "Serious instability detected!", score);
         GameOver = true;
+        sound.StopAudio();
+        LoseBGM();
     }
 
     private void GameClear()
@@ -168,6 +194,8 @@ public class GameManager : MonoBehaviour
         );
         GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, "StackHigh", score);
         GameOver = true;
+        sound.StopAudio();
+        WinBGM();
     }
 
     public void AddInstability(int amount, bool isRight)
